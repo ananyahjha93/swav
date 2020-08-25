@@ -253,7 +253,7 @@ def main():
             momentum=0.9,
             weight_decay=args.wd,
         )
-    elif optimizer == 'adam':
+    elif args.optimizer == 'adam':
         optimizer = torch.optim.Adam(
             params if args.exclude_bn_bias else model.parameters(),
             lr=args.base_lr,
