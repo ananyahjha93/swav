@@ -34,6 +34,8 @@ from src.swav_transforms import SwAVTrainDataTransform
 from src.stl10_datamodule import STL10DataModule, stl10_normalization
 import src.resnet50 as resnet_models
 
+from torch.utils.tensorboard import SummaryWriter
+
 logger = getLogger()
 
 parser = argparse.ArgumentParser(description="Implementation of SwAV")
@@ -153,6 +155,7 @@ def main():
     init_distributed_mode(args)
     fix_random_seeds(args.seed)
     logger, training_stats = initialize_exp(args, "epoch", "loss")
+    writer = SummaryWriter()
 
     # build data
     if args.dataset == 'imagenet':
@@ -306,6 +309,7 @@ def main():
         # train the network
         scores, queue = train(train_loader, model, optimizer, epoch, lr_schedule, queue)
         training_stats.update(scores)
+        writer.add_scalar("Loss/train", scores[1], scores[0])
 
         # save checkpoints
         if args.rank == 0:
@@ -327,6 +331,8 @@ def main():
                 )
         if queue is not None:
             torch.save({"queue": queue}, queue_path)
+
+    writer.flush()
 
 
 def train(train_loader, model, optimizer, epoch, lr_schedule, queue):
