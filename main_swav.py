@@ -36,6 +36,12 @@ import src.resnet50 as resnet_models
 
 from torch.utils.tensorboard import SummaryWriter
 
+# single node single GPU training
+os.environ["RANK"] = 0
+os.environ["WORLD_SIZE"] = 1
+os.environ["MASTER_ADDR"] = '127.0.0.1'
+os.environ['MASTER_PORT'] = '29500'
+
 logger = getLogger()
 
 parser = argparse.ArgumentParser(description="Implementation of SwAV")
