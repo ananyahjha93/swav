@@ -6,7 +6,26 @@ from torchvision import transforms as transform_lib
 from torchvision.datasets import STL10
 
 from pl_bolts.transforms.dataset_normalizations import stl10_normalization
-from pl_bolts.datamodules.concat_dataset import ConcatDataset
+
+
+class UnsupervisedSTL10(STL10):
+    def __getitem__(self, index):
+        if self.labels is not None:
+            img, target = self.data[index], int(self.labels[index])
+        else:
+            img, target = self.data[index], None
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(np.transpose(img, (1, 2, 0)))
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img
 
 
 class STL10DataModule(LightningDataModule):  # pragma: no cover
@@ -97,9 +116,9 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
         """
         Downloads the unlabeled, train and test split
         """
-        STL10(self.data_dir, split='unlabeled', download=True, transform=transform_lib.ToTensor())
-        STL10(self.data_dir, split='train', download=True, transform=transform_lib.ToTensor())
-        STL10(self.data_dir, split='test', download=True, transform=transform_lib.ToTensor())
+        UnsupervisedSTL10(self.data_dir, split='unlabeled', download=True, transform=transform_lib.ToTensor())
+        UnsupervisedSTL10(self.data_dir, split='train', download=True, transform=transform_lib.ToTensor())
+        UnsupervisedSTL10(self.data_dir, split='test', download=True, transform=transform_lib.ToTensor())
 
     def train_dataloader(self):
         """
@@ -107,7 +126,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
         """
         transforms = self.default_transforms() if self.train_transforms is None else self.train_transforms
 
-        dataset = STL10(self.data_dir, split='unlabeled', download=False, transform=transforms)
+        dataset = UnsupervisedSTL10(self.data_dir, split='unlabeled', download=False, transform=transforms)
         train_length = len(dataset)
         dataset_train, _ = random_split(
             dataset,
@@ -143,7 +162,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
         """
         transforms = self.default_transforms() if self.train_transforms is None else self.train_transforms
 
-        unlabeled_dataset = STL10(
+        unlabeled_dataset = UnsupervisedSTL10(
             self.data_dir, split='unlabeled', download=False, transform=transforms
         )
         unlabeled_length = len(unlabeled_dataset)
@@ -153,7 +172,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             generator=torch.Generator().manual_seed(self.seed)
         )
 
-        labeled_dataset = STL10(self.data_dir, split='train', download=False, transform=transforms)
+        labeled_dataset = UnsupervisedSTL10(self.data_dir, split='train', download=False, transform=transforms)
         labeled_length = len(labeled_dataset)
         labeled_dataset, _ = random_split(
             labeled_dataset,
@@ -161,7 +180,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             generator=torch.Generator().manual_seed(self.seed)
         )
 
-        dataset = ConcatDataset(unlabeled_dataset, labeled_dataset)
+        dataset = ConcatDataset([unlabeled_dataset, labeled_dataset])
 
         sampler = None
         if self.train_dist_sampler:
@@ -191,7 +210,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
         """
         transforms = self.default_transforms() if self.val_transforms is None else self.val_transforms
 
-        dataset = STL10(self.data_dir, split='unlabeled', download=False, transform=transforms)
+        dataset = UnsupervisedSTL10(self.data_dir, split='unlabeled', download=False, transform=transforms)
         train_length = len(dataset)
 
         _, dataset_val = random_split(
@@ -233,7 +252,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
         """
         transforms = self.default_transforms() if self.val_transforms is None else self.val_transforms
 
-        unlabeled_dataset = STL10(
+        unlabeled_dataset = UnsupervisedSTL10(
             self.data_dir, split='unlabeled', download=False, transform=transforms
         )
         unlabeled_length = len(unlabeled_dataset)
@@ -243,7 +262,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             generator=torch.Generator().manual_seed(self.seed)
         )
 
-        labeled_dataset = STL10(self.data_dir, split='train', download=False, transform=transforms)
+        labeled_dataset = UnsupervisedSTL10(self.data_dir, split='train', download=False, transform=transforms)
         labeled_length = len(labeled_dataset)
         _, labeled_dataset = random_split(
             labeled_dataset,
@@ -251,7 +270,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             generator=torch.Generator().manual_seed(self.seed)
         )
 
-        dataset = ConcatDataset(unlabeled_dataset, labeled_dataset)
+        dataset = ConcatDataset([unlabeled_dataset, labeled_dataset])
 
         sampler = None
         if self.val_dist_sampler:
@@ -278,7 +297,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             transforms: the transforms
         """
         transforms = self.default_transforms() if self.test_transforms is None else self.test_transforms
-        dataset = STL10(self.data_dir, split='test', download=False, transform=transforms)
+        dataset = UnsupervisedSTL10(self.data_dir, split='test', download=False, transform=transforms)
 
         sampler = None
         if self.test_dist_sampler:
@@ -299,7 +318,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
     def train_dataloader_labeled(self):
         transforms = self.default_transforms() if self.val_transforms is None else self.val_transforms
 
-        dataset = STL10(self.data_dir, split='train', download=False, transform=transforms)
+        dataset = UnsupervisedSTL10(self.data_dir, split='train', download=False, transform=transforms)
         train_length = len(dataset)
         dataset_train, _ = random_split(
             dataset,
@@ -324,7 +343,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
 
     def val_dataloader_labeled(self):
         transforms = self.default_transforms() if self.val_transforms is None else self.val_transforms
-        dataset = STL10(
+        dataset = UnsupervisedSTL10(
             self.data_dir, split='train', download=False, transform=transforms
         )
 
