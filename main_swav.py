@@ -30,6 +30,8 @@ from src.utils import (
     init_distributed_mode,
 )
 from src.multicropdataset import MultiCropDataset
+from src.swav_transforms import SwAVTrainDataTransform
+from src.stl10_datamodule import STL10DataModule, stl10_normalization
 import src.resnet50 as resnet_models
 
 logger = getLogger()
@@ -39,17 +41,21 @@ parser = argparse.ArgumentParser(description="Implementation of SwAV")
 #########################
 #### data parameters ####
 #########################
+parser.add_argument("--gaussian_blur", type=bool, default=True,
+                    help="select gaussian blur in augmentation")
+parser.add_argument("--jitter_strength", type=float, default=1.,
+                    help="jitter strength")
 parser.add_argument("--dataset", type=str, default='stl10',
                     help="choose between imagenet, stl10")
-parser.add_argument("--data_path", type=str, default="/path/to/imagenet",
+parser.add_argument("--data_path", type=str, default=".",
                     help="path to dataset repository")
-parser.add_argument("--nmb_crops", type=int, default=[2], nargs="+",
+parser.add_argument("--nmb_crops", type=int, default=[2, 4], nargs="+",
                     help="list of number of crops (example: [2, 6])")
-parser.add_argument("--size_crops", type=int, default=[224], nargs="+",
+parser.add_argument("--size_crops", type=int, default=[96, 42], nargs="+",
                     help="crops resolutions (example: [224, 96])")
-parser.add_argument("--min_scale_crops", type=float, default=[0.14], nargs="+",
+parser.add_argument("--min_scale_crops", type=float, default=[0.33, 0.10], nargs="+",
                     help="argument in RandomResizedCrop (example: [0.14, 0.05])")
-parser.add_argument("--max_scale_crops", type=float, default=[1], nargs="+",
+parser.add_argument("--max_scale_crops", type=float, default=[1, 0.33], nargs="+",
                     help="argument in RandomResizedCrop (example: [1., 0.14])")
 
 #########################
@@ -75,13 +81,17 @@ parser.add_argument("--epoch_queue_starts", type=int, default=15,
 #########################
 #### optim parameters ###
 #########################
+parser.add_argument("--optimizer", default="adam", type=str,
+                    help="choose between adam/sgd")
+parser.add_argument('--exclude_bn_bias', default=False, type=bool,
+                    help="exclude bn/bias layers from weight decay")
 parser.add_argument("--epochs", default=100, type=int,
                     help="number of total epochs to run")
-parser.add_argument("--batch_size", default=64, type=int,
+parser.add_argument("--batch_size", default=512, type=int,
                     help="batch size per gpu, i.e. how many unique instances per gpu")
 parser.add_argument("--base_lr", default=4.8, type=float, help="base learning rate")
-parser.add_argument("--final_lr", type=float, default=0, help="final learning rate")
-parser.add_argument("--freeze_prototypes_niters", default=313, type=int,
+parser.add_argument("--final_lr", type=float, default=1e-6, help="final learning rate")
+parser.add_argument("--freeze_prototypes_niters", default=206, type=int,
                     help="freeze the prototypes during this many iterations from the start")
 parser.add_argument("--wd", default=1e-6, type=float, help="weight decay")
 parser.add_argument("--warmup_epochs", default=10, type=int, help="number of warmup epochs")
@@ -107,9 +117,9 @@ parser.add_argument("--local_rank", default=0, type=int,
 parser.add_argument("--arch", default="resnet50", type=str, help="convnet architecture")
 parser.add_argument("--hidden_mlp", default=2048, type=int,
                     help="hidden layer dimension in projection head")
-parser.add_argument("--workers", default=10, type=int,
+parser.add_argument("--workers", default=16, type=int,
                     help="number of data loading workers")
-parser.add_argument("--checkpoint_freq", type=int, default=25,
+parser.add_argument("--checkpoint_freq", type=int, default=20,
                     help="Save the model periodically")
 parser.add_argument("--use_fp16", type=bool_flag, default=True,
                     help="whether to train with mixed precision or not")
@@ -117,6 +127,24 @@ parser.add_argument("--sync_bn", type=str, default="pytorch", help="synchronize 
 parser.add_argument("--dump_path", type=str, default=".",
                     help="experiment dump path for checkpoints and log")
 parser.add_argument("--seed", type=int, default=31, help="seed")
+
+
+def exclude_from_wt_decay(named_params, weight_decay, skip_list=['bias', 'bn']):
+    params = []
+    excluded_params = []
+
+    for name, param in named_params:
+        if not param.requires_grad:
+            continue
+        elif any(layer_name in name for layer_name in skip_list):
+            excluded_params.append(param)
+        else:
+            params.append(param)
+
+    return [
+        {'params': params, 'weight_decay': weight_decay},
+        {'params': excluded_params, 'weight_decay': 0.}
+    ]
 
 
 def main():
@@ -127,22 +155,48 @@ def main():
     logger, training_stats = initialize_exp(args, "epoch", "loss")
 
     # build data
-    train_dataset = MultiCropDataset(
-        args.data_path,
-        args.size_crops,
-        args.nmb_crops,
-        args.min_scale_crops,
-        args.max_scale_crops,
-    )
-    sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        sampler=sampler,
-        batch_size=args.batch_size,
-        num_workers=args.workers,
-        pin_memory=True,
-        drop_last=True
-    )
+    if args.dataset == 'imagenet':
+        train_dataset = MultiCropDataset(
+            args.data_path,
+            args.size_crops,
+            args.nmb_crops,
+            args.min_scale_crops,
+            args.max_scale_crops,
+        )
+        sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            sampler=sampler,
+            batch_size=args.batch_size,
+            num_workers=args.workers,
+            pin_memory=True,
+            drop_last=True
+        )
+    elif args.dataset == 'stl10':
+        swav_train_transform = SwAVTrainDataTransform(
+            normalize=stl10_normalization(),
+            size_crops=args.size_crops,
+            nmb_crops=args.nmb_crops,
+            min_scale_crops=args.min_scale_crops,
+            max_scale_crops=args.max_scale_crops,
+            gaussian_blur=args.gaussian_blur,
+            jitter_strength=args.jitter_strength
+        )
+
+        datamodule = STL10DataModule(
+            data_dir=args.data_path,
+            train_dist_sampler=True,
+            num_workers=args.workers,
+            batch_size=args.batch_size
+        )
+
+        datamodule.prepare_data()
+        datamodule.setup()
+
+        datamodule.train_dataloader = datamodule.train_dataloader_mixed
+        datamodule.train_transforms = swav_train_transform
+        train_loader = datamodule.train_dataloader_mixed()
+
     logger.info("Building data done with {} images loaded.".format(len(train_dataset)))
 
     # build model
@@ -152,6 +206,10 @@ def main():
         output_dim=args.feat_dim,
         nmb_prototypes=args.nmb_prototypes,
     )
+
+    if args.dataset == 'stl10':
+        model.maxpool = nn.MaxPool2d(kernel_size=1, stride=1)
+
     # synchronize batch norm layers
     if args.sync_bn == "pytorch":
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -166,13 +224,28 @@ def main():
         logger.info(model)
     logger.info("Building model done.")
 
+    params = None
+    if args.exclude_bn_bias:
+        params = exclude_from_wt_decay(
+            model.named_parameters(),
+            weight_decay=args.wd
+        )
+
     # build optimizer
-    optimizer = torch.optim.SGD(
-        model.parameters(),
-        lr=args.base_lr,
-        momentum=0.9,
-        weight_decay=args.wd,
-    )
+    if args.optimizer == 'sgd':
+        optimizer = torch.optim.SGD(
+            params if args.exclude_bn_bias else model.parameters(),
+            lr=args.base_lr,
+            momentum=0.9,
+            weight_decay=args.wd,
+        )
+    elif optimizer == 'adam':
+        optimizer = torch.optim.Adam(
+            params if args.exclude_bn_bias else model.parameters(),
+            lr=args.base_lr,
+            weight_decay=args.wd
+        )
+
     optimizer = LARC(optimizer=optimizer, trust_coefficient=0.001, clip=False)
     warmup_lr_schedule = np.linspace(args.start_warmup, args.base_lr, len(train_loader) * args.warmup_epochs)
     iters = np.arange(len(train_loader) * (args.epochs - args.warmup_epochs))
