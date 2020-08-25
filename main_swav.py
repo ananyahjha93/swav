@@ -59,7 +59,7 @@ parser.add_argument("--data_path", type=str, default=".",
                     help="path to dataset repository")
 parser.add_argument("--nmb_crops", type=int, default=[2, 4], nargs="+",
                     help="list of number of crops (example: [2, 6])")
-parser.add_argument("--size_crops", type=int, default=[96, 42], nargs="+",
+parser.add_argument("--size_crops", type=int, default=[96, 36], nargs="+",
                     help="crops resolutions (example: [224, 96])")
 parser.add_argument("--min_scale_crops", type=float, default=[0.33, 0.10], nargs="+",
                     help="argument in RandomResizedCrop (example: [0.14, 0.05])")
@@ -81,7 +81,7 @@ parser.add_argument("--feat_dim", default=128, type=int,
                     help="feature dimension")
 parser.add_argument("--nmb_prototypes", default=3000, type=int,
                     help="number of prototypes")
-parser.add_argument("--queue_length", type=int, default=0,
+parser.add_argument("--queue_length", type=int, default=3840,
                     help="length of the queue (0 for no queue)")
 parser.add_argument("--epoch_queue_starts", type=int, default=15,
                     help="from this epoch, we start using a queue")
@@ -95,7 +95,7 @@ parser.add_argument('--exclude_bn_bias', default=False, type=bool,
                     help="exclude bn/bias layers from weight decay")
 parser.add_argument("--epochs", default=100, type=int,
                     help="number of total epochs to run")
-parser.add_argument("--batch_size", default=512, type=int,
+parser.add_argument("--batch_size", default=128, type=int,
                     help="batch size per gpu, i.e. how many unique instances per gpu")
 parser.add_argument("--base_lr", default=4.8, type=float, help="base learning rate")
 parser.add_argument("--final_lr", type=float, default=1e-6, help="final learning rate")
