@@ -1,5 +1,6 @@
 import os
 import torch
+from PIL import Image
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split, ConcatDataset
 from torchvision import transforms as transform_lib
