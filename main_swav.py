@@ -206,7 +206,12 @@ def main():
         datamodule.train_transforms = swav_train_transform
         train_loader = datamodule.train_dataloader_mixed()
 
-    logger.info("Building data done with {} images loaded.".format(len(train_dataset)))
+    if args.dataset == 'imagenet':
+        logger.info("Building data done with {} images loaded.".format(len(train_dataset)))
+    elif args.dataset == 'stl10':
+        logger.info("Building data done with {} images loaded.".format(
+            datamodule.num_unlabeled_samples + datamodule.num_labeled_samples
+        ))
 
     # build model
     model = resnet_models.__dict__[args.arch](
