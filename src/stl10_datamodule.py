@@ -6,6 +6,7 @@ from torchvision import transforms as transform_lib
 from torchvision.datasets import STL10
 
 from pl_bolts.transforms.dataset_normalizations import stl10_normalization
+from pl_bolts.datamodules.concat_dataset import ConcatDataset
 
 
 class STL10DataModule(LightningDataModule):  # pragma: no cover
@@ -160,7 +161,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             generator=torch.Generator().manual_seed(self.seed)
         )
 
-        dataset = ConcatDataset([unlabeled_dataset, labeled_dataset])
+        dataset = ConcatDataset(unlabeled_dataset, labeled_dataset)
 
         sampler = None
         if self.train_dist_sampler:
@@ -250,7 +251,7 @@ class STL10DataModule(LightningDataModule):  # pragma: no cover
             generator=torch.Generator().manual_seed(self.seed)
         )
 
-        dataset = ConcatDataset([unlabeled_dataset, labeled_dataset])
+        dataset = ConcatDataset(unlabeled_dataset, labeled_dataset)
 
         sampler = None
         if self.val_dist_sampler:
