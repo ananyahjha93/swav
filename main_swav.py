@@ -79,7 +79,7 @@ parser.add_argument("--sinkhorn_iterations", default=3, type=int,
                     help="number of iterations in Sinkhorn-Knopp algorithm")
 parser.add_argument("--feat_dim", default=128, type=int,
                     help="feature dimension")
-parser.add_argument("--nmb_prototypes", default=3000, type=int,
+parser.add_argument("--nmb_prototypes", default=256, type=int,
                     help="number of prototypes")
 parser.add_argument("--queue_length", type=int, default=3840,
                     help="length of the queue (0 for no queue)")
