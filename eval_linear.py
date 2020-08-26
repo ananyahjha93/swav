@@ -20,7 +20,7 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-from swav.src.utils import (
+from src.utils import (
     bool_flag,
     initialize_exp,
     restart_from_checkpoint,
@@ -29,7 +29,7 @@ from swav.src.utils import (
     init_distributed_mode,
     accuracy,
 )
-import swav.src.resnet50 as resnet_models
+import src.resnet50 as resnet_models
 
 logger = getLogger()
 
