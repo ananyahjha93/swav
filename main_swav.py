@@ -21,13 +21,13 @@ import torch.optim
 import apex
 from apex.parallel.LARC import LARC
 
-from src.utils import bool_flag, initialize_exp, restart_from_checkpoint
-from src.utils import fix_random_seeds, AverageMeter, init_distributed_mode
+from swav.src.utils import bool_flag, initialize_exp, restart_from_checkpoint
+from swav.src.utils import fix_random_seeds, AverageMeter, init_distributed_mode
 
-from src.multicropdataset import MultiCropDataset
-from src.swav_transforms import SwAVTrainDataTransform
-from src.stl10_datamodule import STL10DataModule, stl10_normalization
-import src.resnet50 as resnet_models
+from swav.src.multicropdataset import MultiCropDataset
+from swav.src.swav_transforms import SwAVTrainDataTransform
+from swav.src.stl10_datamodule import STL10DataModule, stl10_normalization
+import swav.src.resnet50 as resnet_models
 
 from torch.utils.tensorboard import SummaryWriter
 
