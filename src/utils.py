@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from swav.src.logger import create_logger, PD_Stats
+from src.logger import create_logger, PD_Stats
 
 import torch.distributed as dist
 
