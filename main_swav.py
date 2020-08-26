@@ -21,7 +21,7 @@ import torch.optim
 import apex
 from apex.parallel.LARC import LARC
 
-from src.utils import (
+from .src.utils import (
     bool_flag,
     initialize_exp,
     restart_from_checkpoint,
