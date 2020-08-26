@@ -13,24 +13,11 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
 
 setup(
    name='swav',
-   packages=['swav'],  #same as name
+   packages=['src'],  #same as name
    version='1.0',
    url='https://github.com/ananyahjha93/swav',
    maintainer='Ananya Harsh Jha',
    maintainer_email='ananya@pytorchlightning.ai',
-   install_requires=[
-       'numpy', 'opencv-python', 'pandas', 'pytorch-lightning',
-       'scikit-learn', 'scipy', 'tensorboard', 'torch',
-       'torchvision', 'tqdm'
-    ], #external packages as dependencies
-   scripts=[
-            'src/logger',
-            'src/multicropdataset',
-            'src/resnet50',
-            'src/stl10_datamodule',
-            'src/swav_transforms',
-            'src/utils',
-            'eval_linear',
-            'eval_semisup'
-           ]
+   install_requires=load_requirements(PATH_ROOT)
 )
+
