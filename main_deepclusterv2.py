@@ -23,7 +23,7 @@ import apex
 from apex.parallel.LARC import LARC
 from scipy.sparse import csr_matrix
 
-from src.utils import (
+from swav.src.utils import (
     bool_flag,
     initialize_exp,
     restart_from_checkpoint,
@@ -31,8 +31,8 @@ from src.utils import (
     AverageMeter,
     init_distributed_mode,
 )
-from src.multicropdataset import MultiCropDataset
-import src.resnet50 as resnet_models
+from swav.src.multicropdataset import MultiCropDataset
+import swav.src.resnet50 as resnet_models
 
 logger = getLogger()
 
