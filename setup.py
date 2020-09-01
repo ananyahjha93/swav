@@ -20,4 +20,3 @@ setup(
    maintainer_email='ananya@pytorchlightning.ai',
    install_requires=load_requirements(PATH_ROOT)
 )
-
