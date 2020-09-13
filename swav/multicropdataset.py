@@ -7,7 +7,7 @@
 
 from logging import getLogger
 
-import cv2
+#import cv2
 
 import numpy as np
 import torchvision.datasets as datasets
@@ -36,7 +36,8 @@ class MultiCropDataset(datasets.ImageFolder):
         self.return_index = return_index
 
         trans = []
-        color_transform = transforms.Compose([get_color_distortion(), RandomGaussianBlur()])
+        #color_transform = transforms.Compose([get_color_distortion(), RandomGaussianBlur()])
+        color_transform = get_color_distortion()
         mean = [0.485, 0.456, 0.406]
         std = [0.228, 0.224, 0.225]
         for i in range(len(size_crops)):
@@ -62,6 +63,7 @@ class MultiCropDataset(datasets.ImageFolder):
         return multi_crops
 
 
+"""
 class RandomGaussianBlur(object):
     def __call__(self, img):
         do_it = np.random.rand() > 0.5
@@ -69,6 +71,7 @@ class RandomGaussianBlur(object):
             return img
         sigma = np.random.rand() * 1.9 + 0.1
         return cv2.GaussianBlur(np.asarray(img), (23, 23), sigma)
+"""
 
 
 def get_color_distortion(s=1.0):
