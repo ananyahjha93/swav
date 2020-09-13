@@ -1,3 +1,4 @@
+
 import os
 from setuptools import setup, find_packages
 
@@ -13,7 +14,7 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
 
 setup(
    name='swav',
-   packages=['src'],  #same as name
+   packages=['swav'],  #same as name
    version='1.0',
    url='https://github.com/ananyahjha93/swav',
    maintainer='Ananya Harsh Jha',
